@@ -14,6 +14,7 @@ import SpotifyAPI from './modules/SpotifyAPI.js';
 
 
 
+
 class SonosMusicBrowser extends HTMLElement {
 
     // private properties
@@ -33,11 +34,19 @@ class SonosMusicBrowser extends HTMLElement {
 
     async setConfig(config) {
         this._config = config;
+        
+        if (!this._config.musicProvider || !this._config.musicProvider.provider) {
+            throw new Error("La configurazione del provider musicale è mancante");
+        }
+        
+        if (this._config.musicProvider.provider === 'radio' && (!this._config.radioStations || !Array.isArray(this._config.radioStations))) {
+            throw new Error("La configurazione delle stazioni radio non è valida");
+        }
+        
         this.doCheckConfig();
         this.doUpdateConfig();
     
         try {
-            // Gestisci il provider in base alla configurazione
             await this.handleProvider();
         } catch (error) {
             console.error("Errore durante la configurazione della card:", error);
@@ -58,11 +67,149 @@ class SonosMusicBrowser extends HTMLElement {
                 this.handleSpotifyProvider();
                 break;
             case "radio":
-                this.handleRadioProvider();
+                await this.handleRadioProvider();
                 break;
             default:
                 console.error("Provider non supportato:", this._config.provider);
         }
+    }
+
+    async handleRadioProvider() {
+        console.log("Gestione provider radio");
+        
+        if (!this._config.radioStations || !Array.isArray(this._config.radioStations)) {
+            console.error("Nessuna stazione radio configurata");
+            return;
+        }
+
+        if (!(await this.checkNetworkConnection())) {
+            console.error("Nessuna connessione di rete attiva");
+            return;
+        }
+
+        this.showLoadingIndicator();
+
+        const stationPromises = this._config.radioStations.map(station => this.fetchRadioStationDetails(station));
+        const results = await Promise.allSettled(stationPromises);
+        
+        const stationDetails = results
+            .filter(result => result.status === 'fulfilled' && result.value !== null)
+            .map(result => result.value);
+
+        this.hideLoadingIndicator();
+        this.populateRadioStationList(stationDetails);
+    }
+
+    async fetchRadioStationDetails(station, maxRetries = 3) {
+        const apiUrl = `https://de1.api.radio-browser.info/json/stations/byuuid/${station.uuid}`;
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                if (data && data.length > 0) {
+                    return {
+                        name: data[0].name,
+                        url: data[0].url,
+                        favicon: station.favicon || data[0].favicon,
+                        stationUuid: station.uuid
+                    };
+                }
+            } catch (error) {
+                console.error(`Tentativo ${attempt + 1} fallito per la stazione ${station.uuid}:`, error);
+                if (attempt === maxRetries - 1) {
+                    console.error(`Impossibile recuperare i dettagli per la stazione ${station.uuid} dopo ${maxRetries} tentativi`);
+                }
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Attendi 1 secondo prima di riprovare
+            }
+        }
+        return null;
+    }
+
+    populateRadioStationList(stations) {
+        this.hideSearchInput();
+        const radioContainer = this._elements.playlistContainer;
+        if (!radioContainer) {
+            console.error("Elemento radio-container non trovato.");
+            return;
+        }
+    
+        radioContainer.innerHTML = "";
+    
+        stations.forEach(station => {
+            const stationItem = document.createElement("div");
+            stationItem.classList.add("radio-station-item");
+    
+            const stationImageContainer = document.createElement("div");
+            stationImageContainer.classList.add("radio-station-image-container");
+    
+            const stationImage = document.createElement("img");
+            stationImage.classList.add("radio-station-image");
+            stationImage.src = station.favicon || 'path/to/default/radio/icon.png';
+            stationImage.alt = station.name;
+            stationImageContainer.appendChild(stationImage);
+    
+            const stationName = document.createElement("div");
+            stationName.classList.add("radio-station-name");
+            stationName.textContent = station.name;
+    
+            stationItem.appendChild(stationImageContainer);
+            stationItem.appendChild(stationName);
+    
+            stationItem.addEventListener("click", () => {
+                this.playRadioStation(station);
+            });
+    
+            radioContainer.appendChild(stationItem);
+        });
+    }
+
+    playRadioStation(station) {
+        console.log("playRadioStation chiamato con:", station);
+        station.favicon
+        try {
+            if (!station || !station.stationUuid) {
+                console.error("Dati della stazione non validi:", station);
+                return;
+            }
+            console.log("Tentativo di riproduzione della stazione:", station.name);
+    
+            playOnSonos(
+                this._hass, 
+                this._config, 
+                this._machineIdentifier, 
+                "radio", 
+                station.stationUuid, 
+                station.name, 
+                station.favicon || '' // Usa una stringa vuota se la favicon non è disponibile
+            );
+        } catch (error) {
+            console.error("Error playing radio station:", error);
+        }
+    }
+
+    async checkNetworkConnection() {
+        try {
+            const response = await fetch('https://www.google.com', { mode: 'no-cors' });
+            return true;
+        } catch (error) {
+            console.error('Errore di connessione:', error);
+            return false;
+        }
+    }    
+
+
+    showLoadingIndicator() {
+        const radioContainer = this._elements.playlistContainer;
+        radioContainer.innerHTML = "<div>Caricamento stazioni radio...</div>";
+    }
+    
+    
+    hideLoadingIndicator() {
+        const radioContainer = this._elements.playlistContainer;
+        radioContainer.innerHTML = "";
     }
 
     async handlePlexProvider() {
@@ -91,7 +238,6 @@ class SonosMusicBrowser extends HTMLElement {
 
             
             const spotifyAPI = new SpotifyAPI(spClientId, spClientSecret, spRedirectUri, spRefreshToken);
-            console.log("config3", this._config);
             await spotifyAPI.authenticate();
 
             // Ottenere le playlist dell'utente
@@ -104,9 +250,6 @@ class SonosMusicBrowser extends HTMLElement {
     }
 
 
-    handleRadioProvider() {
-        console.log("Mi occuperò delle radio più tardi");
-    }
 
     async retrieveMachineIdentifier() {
         const confPlexServerUrl = this._config.plexServerUrl;
@@ -149,7 +292,7 @@ class SonosMusicBrowser extends HTMLElement {
 
 
     doCheckConfig() {
-        console.log("Controllo da eliminare: doCheckConfig")
+
 //        if (!this._config || !this._config.player || !this._config.player.activePlayer) {
 //            throw new Error("Please define an activePlayer!");
 //        }

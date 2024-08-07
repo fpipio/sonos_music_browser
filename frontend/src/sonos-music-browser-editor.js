@@ -10,7 +10,6 @@ export class SonosMusicBrowserEditor extends HTMLElement {
     // Ciclo di vita
     constructor() {
         super();
-        console.log("editor:constructor()");
         this.doEditor();
         this.doStyle();
         this.doAttach();
@@ -19,7 +18,7 @@ export class SonosMusicBrowserEditor extends HTMLElement {
     }
 
     setConfig(config) {
-        console.log("setConfig(config)")
+
         this._config = config;
         // Se activePlayer non è definito o è vuoto, impostalo al valore predefinito
         if (!this._config.player || !this._config.player.activePlayer) {
@@ -30,19 +29,16 @@ export class SonosMusicBrowserEditor extends HTMLElement {
     }
 
     set hass(hass) {
-        console.log("editor.hass()");
         this._hass = hass;
         this.doUpdateHass();
     }
 
     onChanged(event) {
-        console.log("editor.onChanged()");
         this.doMessageForUpdate(event);
     }
 
     // Azioni
     doEditor() {
-        console.log("doEditor()");
         this._elements.editor = document.createElement("form");
         this._elements.editor.innerHTML = `
             <div class="grid-container">
@@ -93,7 +89,6 @@ export class SonosMusicBrowserEditor extends HTMLElement {
     }
 
     doStyle() {
-        console.log("doStyle()")
         this._elements.style = document.createElement("style");
         this._elements.style.textContent = `
             .grid-container {
@@ -116,13 +111,11 @@ export class SonosMusicBrowserEditor extends HTMLElement {
     }
 
     doAttach() {
-        console.log("doAttach()")
         this.attachShadow({ mode: "open" });
         this.shadowRoot.append(this._elements.style, this._elements.editor);
     }
 
     doQueryElements() {
-        console.log("doQueryElements()")
         this._elements.activePlayer = this._elements.editor.querySelector("#activePlayer");
         this._elements.musicProvider = this._elements.editor.querySelector("#musicProvider");
         this._elements.plexServerUrl = this._elements.editor.querySelector("#plexServerUrl");
@@ -135,11 +128,9 @@ export class SonosMusicBrowserEditor extends HTMLElement {
         this._elements.redirectUri = this._elements.editor.querySelector("#redirectUri");
         this._elements.refreshToken = this._elements.editor.querySelector("#refreshToken");
         this._elements.spotifyFields = this._elements.editor.querySelector(".spotify-only");
-        console.log("qui: ", this._elements.spotifyFields);
     }
 
     doListen() {
-        console.log("doListen()")
         this._elements.activePlayer.addEventListener("focusout", this.onChanged.bind(this));
         this._elements.musicProvider.addEventListener("change", this.onChanged.bind(this));
         this._elements.plexServerUrl.addEventListener("focusout", this.onChanged.bind(this));
@@ -156,7 +147,6 @@ export class SonosMusicBrowserEditor extends HTMLElement {
     }
 
     doUpdateConfig() {
-        console.log("doUpdateConfig()")
         this._elements.activePlayer.value = this._config.player && this._config.player.activePlayer ? this._config.player.activePlayer : 'input_text.active_player';
         this._elements.musicProvider.value = this._config.musicProvider && this._config.musicProvider.provider ? this._config.musicProvider.provider : '';
         this._elements.plexServerUrl.value = this._config.plexServerUrl || '';
@@ -172,28 +162,19 @@ export class SonosMusicBrowserEditor extends HTMLElement {
     }
 
     updateVisibility() {
-        console.log('Update visibility called');
         const isPlex = this._elements.musicProvider.value === 'plex';
         const isSpotify = this._elements.musicProvider.value === 'spotify';
         const isLibrary = this._elements.sourceType.value === 'library';
         const isPlaylist = this._elements.sourceType.value === 'playlist';
     
-        console.log('isPlex:', isPlex);
-        console.log('isSpotify:', isSpotify);
-        console.log('isLibrary:', isLibrary);
-        console.log('isPlaylist:', isPlaylist);
-    
         this._elements.editor.querySelectorAll('.plex-only').forEach(el => {
             el.style.display = isPlex ? 'table-row' : 'none';
         });
     
-        console.log('Active Library Row:', this._elements.activeLibraryRow);
         if (this._elements.activeLibraryRow) {
             this._elements.activeLibraryRow.style.display = isPlex && isLibrary && !isPlaylist ? 'table-row' : 'none'; // Aggiunto la condizione !isPlaylist
-            console.log("table-row : none");
         }
     
-        console.log('Spotify Fields:', this._elements.spotifyFields);
     
         if (isSpotify) {
             this._elements.spotifyFields.style.display = 'table-row';
@@ -205,44 +186,32 @@ export class SonosMusicBrowserEditor extends HTMLElement {
     
 
     doUpdateHass() {
-        console.log("doUpdateHass()")
     }
 
     doMessageForUpdate(changedEvent) {
-        console.log("doMessageForUpdate(changedEvent)")
         const newConfig = Object.assign({}, this._config);
         if (changedEvent.target.id == "activePlayer") {
             newConfig.player = newConfig.player || {};
             newConfig.player.activePlayer = changedEvent.target.value;
-            console.log("changedEvent.target.value", changedEvent.target.value);
         } else if (changedEvent.target.id == "musicProvider") {
             newConfig.musicProvider = newConfig.musicProvider || {};
             newConfig.musicProvider.provider = changedEvent.target.value;
-            console.log("changedEvent.target.value", changedEvent.target.value);
         } else if (changedEvent.target.id == "plexServerUrl") {
             newConfig.plexServerUrl = changedEvent.target.value;
-            console.log("changedEvent.target.value", changedEvent.target.value);
         } else if (changedEvent.target.id == "authToken") {
             newConfig.authToken = changedEvent.target.value;
-            console.log("changedEvent.target.value", changedEvent.target.value);
         } else if (changedEvent.target.id == "sourceType") {
             newConfig.sourceType = changedEvent.target.value;
-            console.log("changedEvent.target.value", changedEvent.target.value);
         } else if (changedEvent.target.id == "activeLibrary") {
             newConfig.activeLibrary = changedEvent.target.value;
-            console.log("changedEvent.target.value", changedEvent.target.value);
         } else if (changedEvent.target.id == "clientId") {
             newConfig.clientId = changedEvent.target.value;
-            console.log("changedEvent.target.value", changedEvent.target.value);
         } else if (changedEvent.target.id == "clientSecret") {
             newConfig.clientSecret = changedEvent.target.value;
-            console.log("changedEvent.target.value", changedEvent.target.value);
         } else if (changedEvent.target.id == "redirectUri") {
             newConfig.redirectUri = changedEvent.target.value;
-            console.log("changedEvent.target.value", changedEvent.target.value);
         } else if (changedEvent.target.id == "refreshToken") {
             newConfig.refreshToken = changedEvent.target.value;
-            console.log("changedEvent.target.value", changedEvent.target.value);
         }
         const messageEvent = new CustomEvent("config-changed", {
             detail: { config: newConfig },

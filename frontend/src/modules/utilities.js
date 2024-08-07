@@ -31,44 +31,69 @@ export function formatDuration(duration) {
 }
 
 
+export async function playOnSonos(hass, config, machineIdentifier, type, id, name = '', favicon = '') {
+    const entityId = hass.states[config.player.activePlayer].state;
+    console.log("Player state:", hass.states[entityId]);
 
-export async function playOnSonos(hass, config, machineIdentifier, type, id) {
-    if (config.musicProvider.provider === 'plex') {
-        try {
-            console.log("Config", config.musicProvider.provider);
-            await hass.callService('media_player', 'play_media', {
-                entity_id: hass.states[config.player.activePlayer].state,
-                media_content_type: 'music',
-                media_content_id: `plex://${machineIdentifier}/${id}`
-            });
-        } catch (error) {
-            console.error(`Error playing track:`, error);
-        }
-    
+    let serviceData;
+
+    if (config.musicProvider.provider === 'radio') {
+        serviceData = {
+            entity_id: entityId,
+            media_content_id: `media-source://radio_browser/${id}`,
+            media_content_type: 'music',
+            extra: {
+                metadata: {
+                    title: name,
+                    media_class: 'music',
+                    children_media_class: null
+                }
+            }
+        };
+    } else if (config.musicProvider.provider === 'plex') {
+        serviceData = {
+            entity_id: entityId,
+            media_content_id: `plex://${machineIdentifier}/${id}`,
+            media_content_type: type
+        };
     } else if (config.musicProvider.provider === 'spotify') {
-        try {
-            await hass.callService('media_player', 'play_media', {
-                entity_id: hass.states[config.player.activePlayer].state,
-                media_content_type: type,
-                media_content_id: `https://open.spotify.com/${type}/${id}`
+        serviceData = {
+            entity_id: entityId,
+            media_content_id: `spotify:${type}:${id}`,
+            media_content_type: type
+        };
+    } else {
+        throw new Error(`Unsupported music provider: ${config.musicProvider.provider}`);
+    }
+
+    console.log("Service data:", serviceData);
+
+    try {
+        console.log("Chiamata al servizio media_player.play_media");
+        await hass.callService('media_player', 'play_media', serviceData);
+        console.log("Chiamata al servizio completata");
+
+        // Imposta radio_thumbnail e radio_name
+        if (config.musicProvider.provider === 'radio') {
+            console.log("Impostazione di radio_thumbnail e radio_name");
+            await hass.callService('sonos_helper', 'set_radio_thumbnail', {
+                entity_id: entityId,
+                thumbnail: favicon
             });
-        } catch (error) {
-            console.error(`Error playing playlist:`, error);
+            await hass.callService('sonos_helper', 'set_radio_name', {
+                entity_id: entityId,
+                name: name
+            });
+            console.log("Radio thumbnail e name impostati:", favicon, name);
         }
 
-
-    }
-}
-
- 
-export async function playSpotifyOnSonos(hass, config, type, id) {
-    try {
-        await hass.callService('media_player', 'play_media', {
-            entity_id: hass.states[config.player.activePlayer].state,
-            media_content_type: 'playlist',
-            media_content_id: `https://open.spotify.com/${type}/${id}`
-        });
+        // Verifica lo stato del player dopo la riproduzione
+        setTimeout(async () => {
+            const updatedState = hass.states[entityId];
+            console.log("Stato del player dopo la riproduzione:", updatedState);
+        }, 2000);
     } catch (error) {
-        console.error(`Error playing playlist:`, error);
+        console.error(`Error playing ${type}:`, error);
+        throw error;
     }
 }

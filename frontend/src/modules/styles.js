@@ -225,4 +225,43 @@ form {
 }
 
 
+.radio-station-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    cursor: pointer;
+    width: 100px;
+    margin: 10px;
+    text-align: center;
+}
+
+.radio-station-image-container {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.radio-station-image {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+}
+
+.radio-station-name {
+    font-size: 14px;
+    word-wrap: break-word;
+    max-width: 100%;
+}
+
+.playlist-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+
 `;

@@ -225,6 +225,45 @@ form {
 }
 
 
+.radio-station-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    cursor: pointer;
+    width: 100px;
+    margin: 10px;
+    text-align: center;
+}
+
+.radio-station-image-container {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.radio-station-image {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+}
+
+.radio-station-name {
+    font-size: 14px;
+    word-wrap: break-word;
+    max-width: 100%;
+}
+
+.playlist-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+
 `;
 
 function getMachineIdentifier(plexServerUrl, authToken) {
@@ -547,7 +586,6 @@ class SonosMusicBrowserEditor extends HTMLElement {
     // Ciclo di vita
     constructor() {
         super();
-        console.log("editor:constructor()");
         this.doEditor();
         this.doStyle();
         this.doAttach();
@@ -556,7 +594,7 @@ class SonosMusicBrowserEditor extends HTMLElement {
     }
 
     setConfig(config) {
-        console.log("setConfig(config)");
+
         this._config = config;
         // Se activePlayer non è definito o è vuoto, impostalo al valore predefinito
         if (!this._config.player || !this._config.player.activePlayer) {
@@ -567,19 +605,16 @@ class SonosMusicBrowserEditor extends HTMLElement {
     }
 
     set hass(hass) {
-        console.log("editor.hass()");
         this._hass = hass;
         this.doUpdateHass();
     }
 
     onChanged(event) {
-        console.log("editor.onChanged()");
         this.doMessageForUpdate(event);
     }
 
     // Azioni
     doEditor() {
-        console.log("doEditor()");
         this._elements.editor = document.createElement("form");
         this._elements.editor.innerHTML = `
             <div class="grid-container">
@@ -630,7 +665,6 @@ class SonosMusicBrowserEditor extends HTMLElement {
     }
 
     doStyle() {
-        console.log("doStyle()");
         this._elements.style = document.createElement("style");
         this._elements.style.textContent = `
             .grid-container {
@@ -653,13 +687,11 @@ class SonosMusicBrowserEditor extends HTMLElement {
     }
 
     doAttach() {
-        console.log("doAttach()");
         this.attachShadow({ mode: "open" });
         this.shadowRoot.append(this._elements.style, this._elements.editor);
     }
 
     doQueryElements() {
-        console.log("doQueryElements()");
         this._elements.activePlayer = this._elements.editor.querySelector("#activePlayer");
         this._elements.musicProvider = this._elements.editor.querySelector("#musicProvider");
         this._elements.plexServerUrl = this._elements.editor.querySelector("#plexServerUrl");
@@ -672,11 +704,9 @@ class SonosMusicBrowserEditor extends HTMLElement {
         this._elements.redirectUri = this._elements.editor.querySelector("#redirectUri");
         this._elements.refreshToken = this._elements.editor.querySelector("#refreshToken");
         this._elements.spotifyFields = this._elements.editor.querySelector(".spotify-only");
-        console.log("qui: ", this._elements.spotifyFields);
     }
 
     doListen() {
-        console.log("doListen()");
         this._elements.activePlayer.addEventListener("focusout", this.onChanged.bind(this));
         this._elements.musicProvider.addEventListener("change", this.onChanged.bind(this));
         this._elements.plexServerUrl.addEventListener("focusout", this.onChanged.bind(this));
@@ -693,7 +723,6 @@ class SonosMusicBrowserEditor extends HTMLElement {
     }
 
     doUpdateConfig() {
-        console.log("doUpdateConfig()");
         this._elements.activePlayer.value = this._config.player && this._config.player.activePlayer ? this._config.player.activePlayer : 'input_text.active_player';
         this._elements.musicProvider.value = this._config.musicProvider && this._config.musicProvider.provider ? this._config.musicProvider.provider : '';
         this._elements.plexServerUrl.value = this._config.plexServerUrl || '';
@@ -709,28 +738,19 @@ class SonosMusicBrowserEditor extends HTMLElement {
     }
 
     updateVisibility() {
-        console.log('Update visibility called');
         const isPlex = this._elements.musicProvider.value === 'plex';
         const isSpotify = this._elements.musicProvider.value === 'spotify';
         const isLibrary = this._elements.sourceType.value === 'library';
         const isPlaylist = this._elements.sourceType.value === 'playlist';
     
-        console.log('isPlex:', isPlex);
-        console.log('isSpotify:', isSpotify);
-        console.log('isLibrary:', isLibrary);
-        console.log('isPlaylist:', isPlaylist);
-    
         this._elements.editor.querySelectorAll('.plex-only').forEach(el => {
             el.style.display = isPlex ? 'table-row' : 'none';
         });
     
-        console.log('Active Library Row:', this._elements.activeLibraryRow);
         if (this._elements.activeLibraryRow) {
             this._elements.activeLibraryRow.style.display = isPlex && isLibrary && !isPlaylist ? 'table-row' : 'none'; // Aggiunto la condizione !isPlaylist
-            console.log("table-row : none");
         }
     
-        console.log('Spotify Fields:', this._elements.spotifyFields);
     
         if (isSpotify) {
             this._elements.spotifyFields.style.display = 'table-row';
@@ -742,44 +762,32 @@ class SonosMusicBrowserEditor extends HTMLElement {
     
 
     doUpdateHass() {
-        console.log("doUpdateHass()");
     }
 
     doMessageForUpdate(changedEvent) {
-        console.log("doMessageForUpdate(changedEvent)");
         const newConfig = Object.assign({}, this._config);
         if (changedEvent.target.id == "activePlayer") {
             newConfig.player = newConfig.player || {};
             newConfig.player.activePlayer = changedEvent.target.value;
-            console.log("changedEvent.target.value", changedEvent.target.value);
         } else if (changedEvent.target.id == "musicProvider") {
             newConfig.musicProvider = newConfig.musicProvider || {};
             newConfig.musicProvider.provider = changedEvent.target.value;
-            console.log("changedEvent.target.value", changedEvent.target.value);
         } else if (changedEvent.target.id == "plexServerUrl") {
             newConfig.plexServerUrl = changedEvent.target.value;
-            console.log("changedEvent.target.value", changedEvent.target.value);
         } else if (changedEvent.target.id == "authToken") {
             newConfig.authToken = changedEvent.target.value;
-            console.log("changedEvent.target.value", changedEvent.target.value);
         } else if (changedEvent.target.id == "sourceType") {
             newConfig.sourceType = changedEvent.target.value;
-            console.log("changedEvent.target.value", changedEvent.target.value);
         } else if (changedEvent.target.id == "activeLibrary") {
             newConfig.activeLibrary = changedEvent.target.value;
-            console.log("changedEvent.target.value", changedEvent.target.value);
         } else if (changedEvent.target.id == "clientId") {
             newConfig.clientId = changedEvent.target.value;
-            console.log("changedEvent.target.value", changedEvent.target.value);
         } else if (changedEvent.target.id == "clientSecret") {
             newConfig.clientSecret = changedEvent.target.value;
-            console.log("changedEvent.target.value", changedEvent.target.value);
         } else if (changedEvent.target.id == "redirectUri") {
             newConfig.redirectUri = changedEvent.target.value;
-            console.log("changedEvent.target.value", changedEvent.target.value);
         } else if (changedEvent.target.id == "refreshToken") {
             newConfig.refreshToken = changedEvent.target.value;
-            console.log("changedEvent.target.value", changedEvent.target.value);
         }
         const messageEvent = new CustomEvent("config-changed", {
             detail: { config: newConfig },
@@ -823,32 +831,70 @@ function formatDuration(duration) {
 }
 
 
+async function playOnSonos(hass, config, machineIdentifier, type, id, name = '', favicon = '') {
+    const entityId = hass.states[config.player.activePlayer].state;
+    console.log("Player state:", hass.states[entityId]);
 
-async function playOnSonos(hass, config, machineIdentifier, type, id) {
-    if (config.musicProvider.provider === 'plex') {
-        try {
-            console.log("Config", config.musicProvider.provider);
-            await hass.callService('media_player', 'play_media', {
-                entity_id: hass.states[config.player.activePlayer].state,
-                media_content_type: 'music',
-                media_content_id: `plex://${machineIdentifier}/${id}`
-            });
-        } catch (error) {
-            console.error(`Error playing track:`, error);
-        }
-    
+    let serviceData;
+
+    if (config.musicProvider.provider === 'radio') {
+        serviceData = {
+            entity_id: entityId,
+            media_content_id: `media-source://radio_browser/${id}`,
+            media_content_type: 'music',
+            extra: {
+                metadata: {
+                    title: name,
+                    media_class: 'music',
+                    children_media_class: null
+                }
+            }
+        };
+    } else if (config.musicProvider.provider === 'plex') {
+        serviceData = {
+            entity_id: entityId,
+            media_content_id: `plex://${machineIdentifier}/${id}`,
+            media_content_type: type
+        };
     } else if (config.musicProvider.provider === 'spotify') {
-        try {
-            await hass.callService('media_player', 'play_media', {
-                entity_id: hass.states[config.player.activePlayer].state,
-                media_content_type: type,
-                media_content_id: `https://open.spotify.com/${type}/${id}`
+        serviceData = {
+            entity_id: entityId,
+            media_content_id: `spotify:${type}:${id}`,
+            media_content_type: type
+        };
+    } else {
+        throw new Error(`Unsupported music provider: ${config.musicProvider.provider}`);
+    }
+
+    console.log("Service data:", serviceData);
+
+    try {
+        console.log("Chiamata al servizio media_player.play_media");
+        await hass.callService('media_player', 'play_media', serviceData);
+        console.log("Chiamata al servizio completata");
+
+        // Imposta radio_thumbnail e radio_name
+        if (config.musicProvider.provider === 'radio') {
+            console.log("Impostazione di radio_thumbnail e radio_name");
+            await hass.callService('sonos_helper', 'set_radio_thumbnail', {
+                entity_id: entityId,
+                thumbnail: favicon
             });
-        } catch (error) {
-            console.error(`Error playing playlist:`, error);
+            await hass.callService('sonos_helper', 'set_radio_name', {
+                entity_id: entityId,
+                name: name
+            });
+            console.log("Radio thumbnail e name impostati:", favicon, name);
         }
 
-
+        // Verifica lo stato del player dopo la riproduzione
+        setTimeout(async () => {
+            const updatedState = hass.states[entityId];
+            console.log("Stato del player dopo la riproduzione:", updatedState);
+        }, 2000);
+    } catch (error) {
+        console.error(`Error playing ${type}:`, error);
+        throw error;
     }
 }
 
@@ -1017,11 +1063,19 @@ class SonosMusicBrowser extends HTMLElement {
 
     async setConfig(config) {
         this._config = config;
+        
+        if (!this._config.musicProvider || !this._config.musicProvider.provider) {
+            throw new Error("La configurazione del provider musicale è mancante");
+        }
+        
+        if (this._config.musicProvider.provider === 'radio' && (!this._config.radioStations || !Array.isArray(this._config.radioStations))) {
+            throw new Error("La configurazione delle stazioni radio non è valida");
+        }
+        
         this.doCheckConfig();
         this.doUpdateConfig();
     
         try {
-            // Gestisci il provider in base alla configurazione
             await this.handleProvider();
         } catch (error) {
             console.error("Errore durante la configurazione della card:", error);
@@ -1042,11 +1096,149 @@ class SonosMusicBrowser extends HTMLElement {
                 this.handleSpotifyProvider();
                 break;
             case "radio":
-                this.handleRadioProvider();
+                await this.handleRadioProvider();
                 break;
             default:
                 console.error("Provider non supportato:", this._config.provider);
         }
+    }
+
+    async handleRadioProvider() {
+        console.log("Gestione provider radio");
+        
+        if (!this._config.radioStations || !Array.isArray(this._config.radioStations)) {
+            console.error("Nessuna stazione radio configurata");
+            return;
+        }
+
+        if (!(await this.checkNetworkConnection())) {
+            console.error("Nessuna connessione di rete attiva");
+            return;
+        }
+
+        this.showLoadingIndicator();
+
+        const stationPromises = this._config.radioStations.map(station => this.fetchRadioStationDetails(station));
+        const results = await Promise.allSettled(stationPromises);
+        
+        const stationDetails = results
+            .filter(result => result.status === 'fulfilled' && result.value !== null)
+            .map(result => result.value);
+
+        this.hideLoadingIndicator();
+        this.populateRadioStationList(stationDetails);
+    }
+
+    async fetchRadioStationDetails(station, maxRetries = 3) {
+        const apiUrl = `https://de1.api.radio-browser.info/json/stations/byuuid/${station.uuid}`;
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                if (data && data.length > 0) {
+                    return {
+                        name: data[0].name,
+                        url: data[0].url,
+                        favicon: station.favicon || data[0].favicon,
+                        stationUuid: station.uuid
+                    };
+                }
+            } catch (error) {
+                console.error(`Tentativo ${attempt + 1} fallito per la stazione ${station.uuid}:`, error);
+                if (attempt === maxRetries - 1) {
+                    console.error(`Impossibile recuperare i dettagli per la stazione ${station.uuid} dopo ${maxRetries} tentativi`);
+                }
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Attendi 1 secondo prima di riprovare
+            }
+        }
+        return null;
+    }
+
+    populateRadioStationList(stations) {
+        this.hideSearchInput();
+        const radioContainer = this._elements.playlistContainer;
+        if (!radioContainer) {
+            console.error("Elemento radio-container non trovato.");
+            return;
+        }
+    
+        radioContainer.innerHTML = "";
+    
+        stations.forEach(station => {
+            const stationItem = document.createElement("div");
+            stationItem.classList.add("radio-station-item");
+    
+            const stationImageContainer = document.createElement("div");
+            stationImageContainer.classList.add("radio-station-image-container");
+    
+            const stationImage = document.createElement("img");
+            stationImage.classList.add("radio-station-image");
+            stationImage.src = station.favicon || 'path/to/default/radio/icon.png';
+            stationImage.alt = station.name;
+            stationImageContainer.appendChild(stationImage);
+    
+            const stationName = document.createElement("div");
+            stationName.classList.add("radio-station-name");
+            stationName.textContent = station.name;
+    
+            stationItem.appendChild(stationImageContainer);
+            stationItem.appendChild(stationName);
+    
+            stationItem.addEventListener("click", () => {
+                this.playRadioStation(station);
+            });
+    
+            radioContainer.appendChild(stationItem);
+        });
+    }
+
+    playRadioStation(station) {
+        console.log("playRadioStation chiamato con:", station);
+        station.favicon;
+        try {
+            if (!station || !station.stationUuid) {
+                console.error("Dati della stazione non validi:", station);
+                return;
+            }
+            console.log("Tentativo di riproduzione della stazione:", station.name);
+    
+            playOnSonos(
+                this._hass, 
+                this._config, 
+                this._machineIdentifier, 
+                "radio", 
+                station.stationUuid, 
+                station.name, 
+                station.favicon || '' // Usa una stringa vuota se la favicon non è disponibile
+            );
+        } catch (error) {
+            console.error("Error playing radio station:", error);
+        }
+    }
+
+    async checkNetworkConnection() {
+        try {
+            const response = await fetch('https://www.google.com', { mode: 'no-cors' });
+            return true;
+        } catch (error) {
+            console.error('Errore di connessione:', error);
+            return false;
+        }
+    }    
+
+
+    showLoadingIndicator() {
+        const radioContainer = this._elements.playlistContainer;
+        radioContainer.innerHTML = "<div>Caricamento stazioni radio...</div>";
+    }
+    
+    
+    hideLoadingIndicator() {
+        const radioContainer = this._elements.playlistContainer;
+        radioContainer.innerHTML = "";
     }
 
     async handlePlexProvider() {
@@ -1075,7 +1267,6 @@ class SonosMusicBrowser extends HTMLElement {
 
             
             const spotifyAPI = new SpotifyAPI(spClientId, spClientSecret, spRedirectUri, spRefreshToken);
-            console.log("config3", this._config);
             await spotifyAPI.authenticate();
 
             // Ottenere le playlist dell'utente
@@ -1088,9 +1279,6 @@ class SonosMusicBrowser extends HTMLElement {
     }
 
 
-    handleRadioProvider() {
-        console.log("Mi occuperò delle radio più tardi");
-    }
 
     async retrieveMachineIdentifier() {
         const confPlexServerUrl = this._config.plexServerUrl;
@@ -1133,7 +1321,7 @@ class SonosMusicBrowser extends HTMLElement {
 
 
     doCheckConfig() {
-        console.log("Controllo da eliminare: doCheckConfig");
+
 //        if (!this._config || !this._config.player || !this._config.player.activePlayer) {
 //            throw new Error("Please define an activePlayer!");
 //        }
